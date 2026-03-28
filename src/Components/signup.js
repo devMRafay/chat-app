@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { auth, db, firestore, storage } from "../Config/firebase"
+import { auth, db, firestore, storage } from "../config/firebase"
 import { Link, useNavigate } from "react-router-dom"
 import "../App.css"
 
