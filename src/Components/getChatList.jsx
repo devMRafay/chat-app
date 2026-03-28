@@ -1,286 +1,100 @@
-import { Link, useNavigate } from "react-router-dom";
-import { firestore } from "../Config/firebase";
-import { useEffect, useState } from "react";
-import "../App.css";
-import { set } from "firebase/database";
+import { Link, useNavigate } from "react-router-dom"
+import { firestore } from "../Config/firebase"
+import { useEffect, useState } from "react"
+import "../App.css"
 
 function ChatList() {
-  const [users, setUsers] = useState([]);
-  const [isLoading, setIsLoading] = useState(false); // Loading state
-  const currentUserId = localStorage.getItem("uid"); // Get current user ID
-  const nav = useNavigate();
-  // const [allqueryData, setAllQueryData] = useState([])
+  const [users, setUsers] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+  const currentUserId = localStorage.getItem("uid")
+  const nav = useNavigate()
+
+  const getInitials = (name = "") =>
+    name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
 
   const getData = async () => {
-    setIsLoading(true); // Set loading state
-
-
-    const query1 = firestore.collection("conversation").where("SenderId", "==", currentUserId);
-    // .get().then((snap)=>{
-    //     // console.log(snap)
-    //     snap.forEach((doc)=>{
-    //       console.log(doc.data())
-    //       query1.push(doc.data())
-    //     })
-    //   })
-
-
-    const query2 = firestore.collection("conversation").where("RecieverId", "==", currentUserId);
-    // .get().then((snap)=>{
-    //   // console.log(snap)
-    //   snap.forEach((doc)=>{
-    //     console.log(doc.data())
-    //     query2.push(doc.data())
-    //   })
-    // });
-
-    // const queryData = [...query1, ...query2]
-    // setAllQueryData([...query1, ...query2])
-    // setUsers([...query1, ...query2])
+    setIsLoading(true)
+    const query1 = firestore.collection("conversation").where("SenderId", "==", currentUserId)
+    const query2 = firestore.collection("conversation").where("RecieverId", "==", currentUserId)
     try {
-      const results = await Promise.all([query1.get(), query2.get()]);
-      const allDocs = [];
-
+      const results = await Promise.all([query1.get(), query2.get()])
+      const allDocs = []
       results.forEach((querySnapshot) => {
         querySnapshot.forEach((doc) => {
           const existingDoc = allDocs.find(
-            (existing) => existing.id === doc.id || // Check for duplicate IDs
-              (existing.SenderId === doc.data().RecieverId && existing.RecieverId === doc.data().SenderId) // Check for conversation duplicates
-          );
-
-          if (!existingDoc) {
-            allDocs.push(doc);
-          }
-        });
-      });
-
-      setUsers(allDocs.map((doc) => doc.data()));
+            (existing) => existing.id === doc.id ||
+              (existing.SenderId === doc.data().RecieverId && existing.RecieverId === doc.data().SenderId)
+          )
+          if (!existingDoc) allDocs.push(doc)
+        })
+      })
+      setUsers(allDocs.map((doc) => doc.data()))
     } catch (error) {
-      console.error("Error getting documents:", error);
-    } 
-    
-    finally{
-        setIsLoading(false); // Reset loading state
+      console.error("Error getting documents:", error)
+    } finally {
+      setIsLoading(false)
     }
+  }
 
+  useEffect(() => { getData() }, [])
 
-    
-  };
-
-  useEffect(() => {
-    getData();
-  }, []); // Run getData on component mount
-
-  const sendChatPage = (v,i) => {
-    // ... your logic to navigate to chat screen
-    // localStorage.getItem(users[i]["roomId"]);
-    console.log(users[i]["roomId"])
-    localStorage.setItem("currentRoomID", users[i]["roomId"])
-            // "conversation", 
-            // localStorage.setItem("RecieverId", val.SenderId == currentUserId ? val.RecieverId : val.SenderId
-            // );
-            nav("/chatScreen")
-  };
+  const openChat = (index) => {
+    localStorage.setItem("currentRoomID", users[index]["roomId"])
+    nav("/chatScreen")
+  }
 
   return (
     <>
-      <div className="navbar" style={{ display: "flex", justifyContent: "space-around" }}>
-        <Link to={"/user"}>User List Page</Link>
-        <Link to={"/Request"}>Request</Link>
-        <Link to={"/chatList"}>Friends List</Link>
-      </div>
-
-      <h1 style={{ textAlign: "center" }}>Chat Users</h1>
-
-      {isLoading ? 
-        <p>Loading chat list...</p>
-        : 
-          // .
-          users.map((val, index)=>{
-            return(
-
-              <div
-                        key={index}
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          padding: "10px",
-                          borderBottom: "1px solid #ccc",
-                          margin: "40px",
-                        }}
-                      >
-                        <div>
-
-                          <div><strong>ID:</strong> {val.userId}</div>
-                          <div>
-                            <strong>Name:</strong>{" "}
-                            {val.SenderId == currentUserId
-                              ? val.RecieverName
-                              : val.SenderName}
-                          </div>
-                          <div>
-                            <strong>Email:</strong>{" "}
-                            {val.SenderId == currentUserId
-                              ? val.RecieverEmail
-                              : val.SenderEmail}
-                          </div>
-                              
-
-
-                        </div>
-
-                        <div>
-                        
-                          <button
-                            onClick={() => 
-                             sendChatPage(val,index)
-                            }
-                          >
-                            Chat
-                          </button>
-                        </div>
-                      </div>
-
-            )
-        }) 
-      }
-        </>
-    
-    )  }
-    
-    export default ChatList;
-
-
-
-/* 
-import { Link, useNavigate } from "react-router-dom";
-import { firestore } from "../Config/firebase";
-import { useEffect, useState } from "react";
-import "../App.css"
-*/
-
-/*
-function ChatList() {
-
-    // alert("welcome to chat list page")
-    console.log("welcome to chat list page")
-    const [users, setUsers] = useState([]);
-    const [chatListd, setchatList] = useState([]);
-    const [currentUserId, setcurrentUserId] = useState("");
-    const nav = useNavigate()
-    // The current user's ID
-    
-    const  getData=async ()=>{
-        var userId = localStorage.getItem("uid");
-        setcurrentUserId(userId);
-        var data = [];
-        
-        const query1 = firestore.collection("conversation").where("SenderId", "==", currentUserId);
-    
-        // Query to get users where status is equal to "active"
-         const query2 = firestore
-          .collection("conversation")
-          .where("RecieverId", "==", currentUserId);
-    
-        // Execute both queries
-        await Promise.all([query1.get(), query2.get()])
-          .then((results) => {
-            const allDocs = [];
-    
-            results.forEach((querySnapshot) => {
-              querySnapshot.forEach((doc) => {
-                // Merge results, avoiding duplicates
-                if (!allDocs.some((existingDoc) => existingDoc.id == doc.id)) {
-                  allDocs.push(doc);
-                }
-              });
-            });
-    
-            // Process the merged results
-            allDocs.forEach((doc) => {
-              console.log(doc.id, " => ", doc.data());
-              data.push(doc.data());
-            });
-            setchatList(...data);
-          })
-          .catch((error) => {
-            console.log("Error getting documents: ", error);
-          });
-        
-
-        setUsers(chatListd);
-    }
-
-    console.log("chatlist",chatListd)
-    console.log("user",users)
-      
-    useEffect( () => {
-       getData()
-      }, []);
-    
-      const sendChatPage=(val)=>{
-        localStorage.setItem("conversation", val.roomId);
-        localStorage.setItem("RecieverId", val.SenderId == currentUserId ? val.RecieverId : val.SenderId
-        );
-        nav("/chatScreen")
-    
-      }
-
-
-
-
-    return(
-        <>
-            <div className="navbar" style={{display:"flex",justifyContent:"space-around"}}>
-                <Link to={"/user"}>User List  Page</Link>
-                <Link to={"/Request"}>Request</Link>
-                <Link to={"/chatList"}>Friends List</Link>
-            </div>
-
-            <h1 style={{ textAlign: "center" }}>Chat Users</h1>
-      {users.map((val, index) => { 
-        return(
-        <div
-          key={index}
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            padding: "10px",
-            borderBottom: "1px solid #ccc",
-            margin: "40px",
-          }}
-        >
-          <div>
-            // <div><strong>ID:</strong> {val.userId}</div> 
-            <div>
-              <strong>Name:</strong>{" "}
-              {val.SenderId == currentUserId
-                ? val.RecieverName
-                : val.SenderName}
-            </div>
-            <div>
-              <strong>Email:</strong>{" "}
-              {val.SenderId == currentUserId
-                ? val.RecieverEmail
-                : val.SenderEmail}
-            </div>
-          </div>
-          <div>
-            <button
-              onClick={() => {
-               sendChatPage(val)
-              }}
-            >
-              Chat
-            </button>
-          </div>
+      <nav className="navbar">
+        <span className="navbar-brand">ChatApp</span>
+        <div className="navbar-links">
+          <Link to="/user">People</Link>
+          <Link to="/Request">Requests</Link>
+          <Link to="/chatList">Friends</Link>
         </div>
-      )})}
+      </nav>
 
-        </>
-    )
- } */
-// export default ChatList;
+      <div className="page">
+        <div className="list-container">
+          <div className="list-header">
+            <h2 className="list-title">Your friends</h2>
+            {!isLoading && <span className="list-count">{users.length} friends</span>}
+          </div>
 
+          {isLoading ? (
+            <div className="loading"><div className="spinner"></div> Loading friends…</div>
+          ) : users.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">🤝</div>
+              <p>No friends yet — add some from People tab</p>
+            </div>
+          ) : (
+            users.map((val, index) => {
+              const isSender = val.SenderId === currentUserId
+              const name = isSender ? val.RecieverName : val.SenderName
+              const email = isSender ? val.RecieverEmail : val.SenderEmail
+              const image = isSender ? val.RecieverImage : val.SenderImage
 
+              return (
+                <div className="user-card" key={index}>
+                  <div className="avatar">
+                    {image ? <img src={image} alt={name} /> : getInitials(name)}
+                  </div>
+                  <div className="user-info">
+                    <div className="user-name">{name}</div>
+                    <div className="user-email">{email}</div>
+                  </div>
+                  <div className="user-actions">
+                    <button className="btn-chat" onClick={() => openChat(index)}>Message</button>
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
 
+export default ChatList

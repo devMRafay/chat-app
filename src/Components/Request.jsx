@@ -1,137 +1,119 @@
 import { useEffect, useState } from "react"
 import { db, firestore } from "../Config/firebase"
 import { Link, useNavigate } from "react-router-dom"
+import "../App.css"
 
-function Request(){
+function Request() {
+  const nav = useNavigate()
+  const [RequestData, setRequestData] = useState([])
+  const [id, setId] = useState()
+  const [loading, setLoading] = useState(true)
 
+  const getInitials = (name = "") =>
+    name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
 
-    const nav = useNavigate()
-    const [RequestData, setRequestData] = useState([])
-    const [id, setId] = useState()
-    const getAllRequest = async () => {
+  const getAllRequest = async () => {
+    setLoading(true)
+    var userId = localStorage.getItem("uid")
+    setId(userId)
+    var SenderRequest = []
+    await firestore.collection("Request").where("SenderId", "==", userId).get()
+      .then((snap) => snap.forEach((doc) => SenderRequest.push(doc.data())))
+    var RecieverRequest = []
+    await firestore.collection("Request").where("RecieverId", "==", userId).get()
+      .then((snap) => snap.forEach((doc) => RecieverRequest.push(doc.data())))
+    setRequestData([...SenderRequest, ...RecieverRequest])
+    setLoading(false)
+  }
 
-        var userId = localStorage.getItem("uid")
-        setId(userId)
+  useEffect(() => { getAllRequest() }, [])
 
-        var SenderRequest = []    
-        await firestore.collection("Request").where("SenderId", "==", userId)
-        .get().then((snap)=>{
-            snap.forEach((doc)=>{
-                console.log(doc.data())
-                SenderRequest.push(doc.data())
-            }) 
-        })
-        
-        var RecieverRequest = []
-        
-        await firestore.collection("Request").where("RecieverId", "==", userId)
-        .get().then((snap)=>{
-            snap.forEach((doc)=>{
-                console.log(doc.data())
-                RecieverRequest.push(doc.data())
-            })
-        })
-        
-        var allRequest = [...SenderRequest,...RecieverRequest]
-        
-        setRequestData([...SenderRequest,...RecieverRequest])
-        
-    }
-        
+  const AcceptRequest = async (ind) => {
+    var userData = RequestData[ind]
+    RequestData[ind]["Loading"] = true
+    setRequestData([...RequestData])
+    var roomId = db.ref("conversation").push().key
+    await firestore.collection("conversation").doc(roomId).set({
+      SenderId: userData["SenderId"], SenderEmail: userData["SenderEmail"],
+      SenderName: userData["SenderName"], SenderImage: userData["SenderImage"],
+      RecieverId: userData["RecieverId"], RecieverEmail: userData["RecieverEmail"],
+      RecieverName: userData["RecieverName"], RecieverImage: userData["RecieverImage"], roomId
+    })
+    await firestore.collection("Request").doc(RequestData[ind]["RequestId"]).update({ RequestStatus: "accepted", roomId })
+    RequestData[ind]["RequestStatus"] = "accepted"
+    RequestData[ind]["roomId"] = roomId
+    setRequestData([...RequestData])
+  }
 
-    useEffect(()=>{
-        getAllRequest()
-    },[])
-    
+  const NavigateToChat = (index) => {
+    localStorage.setItem("currentRoomID", RequestData[index]["roomId"])
+    nav("/chatScreen")
+  }
 
-    const AcceptRequest = async (ind) => {
-        console.log(RequestData[ind])
-        var userData = RequestData[ind]
+  return (
+    <>
+      <nav className="navbar">
+        <span className="navbar-brand">ChatApp</span>
+        <div className="navbar-links">
+          <Link to="/user">People</Link>
+          <Link to="/Request">Requests</Link>
+          <Link to="/chatList">Friends</Link>
+        </div>
+      </nav>
 
-        RequestData[ind]["Loading"] = true
-        setRequestData([...RequestData])
+      <div className="page">
+        <div className="list-container">
+          <div className="list-header">
+            <h2 className="list-title">Friend requests</h2>
+            {!loading && <span className="list-count">{RequestData.length} requests</span>}
+          </div>
 
-        var roomId = db.ref("conversation").push().key;
-        await firestore.collection("conversation").doc(roomId)
-        .set({
-            SenderId : userData["SenderId"],
-            SenderEmail : userData["SenderEmail"],
-            SenderName : userData["SenderName"],
-            SenderImage : userData["SenderImage"],
-            RecieverId :    userData["RecieverId"],
-            RecieverEmail:  userData["RecieverEmail"],
-            RecieverName :  userData["RecieverName"],
-            RecieverImage : userData["RecieverImage"],
-            roomId
-           
-    }) 
-
-        await firestore.collection("Request").doc(RequestData[ind]["RequestId"])
-        .update({
-           RequestStatus: "accepted",
-           roomId
-        })
-
-        RequestData[ind]["RequestStatus"] = "accepted"
-        RequestData[ind]["roomId"] = roomId
-        console.log(RequestData[ind])
-        setRequestData([...RequestData])
-
-
-    }
-
-    const NavigateToChat = (index) => {
-        console.log(RequestData[index]["roomId"])
-        // localStorage.setItem("roomId", RequestData[index]["roomId"])
-        localStorage.setItem("currentRoomID", RequestData[index]["roomId"])
-        nav("/chatScreen")
-    }
-
-    return(
-
-        <>
-        
-            <div className="navbar" style={{ display: "flex", justifyContent: "space-around" }}>
-                <Link to={"/user"}>User List Page</Link>
-                <Link to={"/Request"}>Request</Link>
-                <Link to={"/chatList"}>Friend List Page</Link>
+          {loading ? (
+            <div className="loading"><div className="spinner"></div> Loading requests…</div>
+          ) : RequestData.length === 0 ? (
+            <div className="empty-state">
+              <div className="empty-icon">📬</div>
+              <p>No friend requests yet</p>
             </div>
+          ) : (
+            RequestData.map((v, i) => {
+              const isSender = v.SenderId === id
+              const otherName = isSender ? v.RecieverName : v.SenderName
+              const otherEmail = isSender ? v.RecieverEmail : v.SenderEmail
+              const otherImage = isSender ? v.RecieverImage : v.SenderImage
 
-            {/* <h1> All Request </h1> */}
-            {
-                RequestData.map((v,i)=>{
-                    return(
-                        <>
-                    <div className="flex">
-
-                        <h1>{v.SenderId ==id ? v.RecieverName :v.SenderName}</h1>
-                        
-                        {v.SenderId ==id ?
-                            <h3> 
-                                {v.RequestStatus == "pending" ? 
-                                `status: ${v.RequestStatus}` : <button onClick={()=> NavigateToChat(i)}>chat</button>} 
-                            </h3> : null}
-                        
-                        {v.SenderId !=id && v.RequestStatus == "pending" && v.Loading == null?
-                        <button onClick={()=> AcceptRequest(i)}>Accept</button> : 
-                        v.SenderId != id && v.RequestStatus == "pending" && v.Loading != null? 
-                        <b>Loading...</b> 
-                        :null}
-
-                        {v.SenderId !=id && v.RequestStatus == "accepted" ? 
-                        <button onClick={()=> NavigateToChat(i)}> chat </button> : null}
-                        
-                        
-
-                    </div>
-                        </>  
-                    )       
-                })
-             }             
-       
-        </>
-    )
-
+              return (
+                <div className="user-card" key={i}>
+                  <div className="avatar">
+                    {otherImage ? <img src={otherImage} alt={otherName} /> : getInitials(otherName)}
+                  </div>
+                  <div className="user-info">
+                    <div className="user-name">{otherName}</div>
+                    <div className="user-email">{otherEmail}</div>
+                  </div>
+                  <div className="user-actions">
+                    {isSender && (
+                      v.RequestStatus === "pending"
+                        ? <span className="badge badge-pending">Pending</span>
+                        : <button className="btn-chat" onClick={() => NavigateToChat(i)}>Open chat</button>
+                    )}
+                    {!isSender && v.RequestStatus === "pending" && (
+                      v.Loading
+                        ? <span className="badge badge-pending">Accepting…</span>
+                        : <button className="btn-accept" onClick={() => AcceptRequest(i)}>Accept</button>
+                    )}
+                    {!isSender && v.RequestStatus === "accepted" && (
+                      <button className="btn-chat" onClick={() => NavigateToChat(i)}>Open chat</button>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </div>
+    </>
+  )
 }
 
 export default Request

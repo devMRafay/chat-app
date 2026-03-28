@@ -1,68 +1,71 @@
 import { useState } from "react"
 import { auth, db, firestore, storage } from "../Config/firebase"
 import { Link, useNavigate } from "react-router-dom"
+import "../App.css"
 
-function Home () {
-    
-    const [email, setemail] = useState()
-    const [password, setpassword] = useState()
-    const [name, setname] = useState()
-    const [link, setlink] = useState("")
-    const nav = useNavigate()
+function Home() {
+  const [email, setemail] = useState("")
+  const [password, setpassword] = useState("")
+  const [name, setname] = useState("")
+  const [link, setlink] = useState("")
+  const [loading, setLoading] = useState(false)
+  const nav = useNavigate()
 
-    const imageUpload = async (e) =>{
-        console.log(e.target.files[0])
-        var storageRef = storage.ref("image").child(e.target.files[0].name);
-        await storageRef.put(e.target.files[0]).then((snapshot)=>{
-            console.log('Upload a blob or file!')
-            storageRef.getDownloadURL().then((url)=>{
-                console.log(url)
-                setlink(url)
-            }).catch((e)=>{
-                console.log(e)
-            })
-        });
-    }
+  const imageUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    var storageRef = storage.ref("image").child(file.name)
+    await storageRef.put(file).then(() => {
+      storageRef.getDownloadURL().then((url) => setlink(url)).catch(console.log)
+    })
+  }
 
-    const signUp = async () => {
-        await auth.createUserWithEmailAndPassword(email,password)
-        .then(async (user)=>{
-            console.log(user)
-            console.log(user.user.uid)
-            
-            var obj = {
-                email:email,
-                password:password,
-                name:name,
-                userUid:user.user.uid,
-                imageUrl: link
-            }
+  const signUp = async () => {
+    if (!name || !email || !password) return alert("Please fill all fields")
+    setLoading(true)
+    await auth.createUserWithEmailAndPassword(email, password)
+      .then(async (user) => {
+        var obj = { email, password, name, userUid: user.user.uid, imageUrl: link }
+        await firestore.collection("users").doc(user.user.uid).set(obj)
+          .then(() => nav("/login"))
+          .catch(console.log)
+      }).catch((e) => { alert(e.message); setLoading(false) })
+  }
 
-            // await db.ref("users").child(user.user.uid).set(obj)
-            await firestore.collection("users").doc(user.user.uid).set(obj)
-            .then((snap)=>{
-                console.log("add in firestore")
-                nav("/login")
-            }).catch((e)=>{
-                console.log(e)
-            })
+  return (
+    <div className="page-center">
+      <div className="card-auth">
+        <div className="auth-logo">💬</div>
+        <h1 className="auth-title">Create account</h1>
+        <p className="auth-subtitle">Join and start chatting with friends</p>
 
-        }).catch((e)=>{
-            console.log(e)
-        })
-    }
-    return( 
+        <div className="form-group">
+          <label className="form-label">Full name</label>
+          <input className="form-input" type="text" placeholder="Your name" value={name} onChange={(e) => setname(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Email</label>
+          <input className="form-input" type="email" placeholder="you@example.com" value={email} onChange={(e) => setemail(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Password</label>
+          <input className="form-input" type="password" placeholder="Create a password" value={password} onChange={(e) => setpassword(e.target.value)} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Profile photo <span style={{color:'var(--text-3)', fontWeight:400}}>(optional)</span></label>
+          <input className="form-input-file" type="file" accept="image/*" onChange={imageUpload} />
+        </div>
 
-        <>
-        <h1> Create Account Page </h1>
-        <input type="text" placeholder="Enter Name" value={name} onChange={(e)=>setname(e.target.value)}/>
-        <input type="email" placeholder="Enter email" value={email} onChange={(e)=>setemail(e.target.value)}/>
-        <input type="text" placeholder="Enter password" value={password} onChange={(e)=>setpassword(e.target.value)}/>
-        <input type="file" onChange={(e)=>imageUpload(e)} />
-        <button onClick={()=>signUp()}>Sign up</button>
-        <Link to={"/login"}>Login User</Link>
-        </>
-    )
+        <button className="btn-primary" onClick={signUp} disabled={loading}>
+          {loading ? "Creating account…" : "Create account"}
+        </button>
+
+        <div className="auth-footer">
+          Already have an account? <Link to="/login">Sign in</Link>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-export default Home;
+export default Home
