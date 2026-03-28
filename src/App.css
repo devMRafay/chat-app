@@ -138,6 +138,38 @@ body { font-family: var(--font); background: var(--surface-3); color: var(--text
 .back-btn { display: flex; align-items: center; gap: 6px; color: var(--text-2); font-size: 13.5px; font-weight: 500; cursor: pointer; text-decoration: none; background: none; border: none; font-family: var(--font); padding: 0; transition: color 0.15s; }
 .back-btn:hover { color: var(--text-1); }
 
+
+/* SEARCH BAR */
+.search-bar { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-full); padding: 8px 14px; margin-bottom: 16px; transition: border-color 0.15s, box-shadow 0.15s; }
+.search-bar:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(24,95,165,0.1); }
+.search-icon { width: 16px; height: 16px; color: var(--text-3); flex-shrink: 0; }
+.search-input { flex: 1; border: none; outline: none; font-size: 14px; font-family: var(--font); color: var(--text-1); background: transparent; }
+.search-input::placeholder { color: var(--text-3); }
+.search-clear { background: none; border: none; cursor: pointer; font-size: 12px; color: var(--text-3); padding: 2px 4px; border-radius: 50%; transition: color 0.15s; line-height: 1; }
+.search-clear:hover { color: var(--text-1); }
+
+/* DELETE MESSAGE BUTTON */
+.msg-delete-btn { width: 22px; height: 22px; border-radius: 50%; border: none; background: var(--red-light); color: var(--red); font-size: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s, transform 0.1s; animation: fadeIn 0.1s ease; }
+.msg-delete-btn:hover { background: var(--red); color: white; transform: scale(1.1); }
+@keyframes fadeIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+
+/* CLEAR CHAT BUTTON */
+.btn-clear-chat { height: 32px; padding: 0 14px; background: var(--red-light); color: var(--red); border: none; border-radius: var(--radius-full); font-size: 12.5px; font-weight: 600; font-family: var(--font); cursor: pointer; transition: all 0.15s; white-space: nowrap; flex-shrink: 0; }
+.btn-clear-chat:hover { background: var(--red); color: white; }
+
+/* CONFIRM MODAL */
+.confirm-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 16px; }
+.confirm-box { background: var(--surface); border-radius: var(--radius-xl); padding: 32px 28px; max-width: 360px; width: 100%; text-align: center; box-shadow: var(--shadow-md); }
+.confirm-icon { font-size: 32px; margin-bottom: 12px; }
+.confirm-title { font-size: 16px; font-weight: 600; color: var(--text-1); margin-bottom: 8px; }
+.confirm-sub { font-size: 13.5px; color: var(--text-2); line-height: 1.5; margin-bottom: 24px; }
+.confirm-actions { display: flex; gap: 10px; justify-content: center; }
+.btn-secondary-sm { height: 38px; padding: 0 20px; background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 500; font-family: var(--font); cursor: pointer; transition: all 0.15s; }
+.btn-secondary-sm:hover { background: var(--surface-3); color: var(--text-1); }
+.btn-danger-sm { height: 38px; padding: 0 20px; background: var(--red); color: white; border: none; border-radius: var(--radius-sm); font-size: 13.5px; font-weight: 600; font-family: var(--font); cursor: pointer; transition: background 0.15s; }
+.btn-danger-sm:hover { background: #c43c3b; }
+
+
 /* RESPONSIVE */
 @media (max-width: 600px) {
   .navbar { padding: 0 14px; }
@@ -150,3 +182,5 @@ body { font-family: var(--font); background: var(--surface-3); color: var(--text
   .chat-input-bar { padding: 10px 12px; }
   .list-container { max-width: 100%; }
 }
+
+

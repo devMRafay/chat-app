@@ -9,10 +9,17 @@ const MessageScreen = () => {
   const [roomID, setRoomId] = useState("")
   const [text, setText] = useState("")
   const [Message, setMessage] = useState([])
+  const [hoveredMsg, setHoveredMsg] = useState(null)
+  const [showClearConfirm, setShowClearConfirm] = useState(false)
   const messagesEndRef = useRef(null)
   const nav = useNavigate()
 
   var roomId = localStorage.getItem("currentRoomID")
+  const myName = localStorage.getItem("name") || ""
+  const myImage = localStorage.getItem("image") || ""
+
+  const getInitials = (name = "") =>
+    name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
 
   const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
 
@@ -55,6 +62,19 @@ const MessageScreen = () => {
     await firestore.collection("message").doc(messageKey).set(data).catch(console.log)
   }
 
+  const deleteMessage = async (msg) => {
+    await firestore.collection("message").doc(msg.messageKey).delete().catch(console.log)
+    setHoveredMsg(null)
+  }
+
+  const clearChat = async () => {
+    const snapshot = await firestore.collection("message").where("roomId", "==", roomID).get()
+    const batch = firestore.batch()
+    snapshot.docs.forEach((doc) => batch.delete(doc.ref))
+    await batch.commit().catch(console.log)
+    setShowClearConfirm(false)
+  }
+
   const otherName = roomData[0]
     ? (roomData[0]["SenderId"] === id ? roomData[0]["RecieverName"] : roomData[0]["SenderName"])
     : "Chat"
@@ -62,9 +82,6 @@ const MessageScreen = () => {
   const otherImage = roomData[0]
     ? (roomData[0]["SenderId"] === id ? roomData[0]["RecieverImage"] : roomData[0]["SenderImage"])
     : ""
-
-  const getInitials = (name = "") =>
-    name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
 
   const formatTime = (ts) => {
     if (!ts) return ""
@@ -83,11 +100,8 @@ const MessageScreen = () => {
       </nav>
 
       <div className="chat-layout">
-        {/* Chat header */}
         <div className="chat-top">
-          <button className="back-btn" onClick={() => nav("/chatList")}>
-            ← Back
-          </button>
+          <button className="back-btn" onClick={() => nav("/chatList")}>← Back</button>
           <div className="avatar" style={{ width: 38, height: 38, fontSize: 13 }}>
             {otherImage ? <img src={otherImage} alt={otherName} /> : getInitials(otherName)}
           </div>
@@ -95,9 +109,25 @@ const MessageScreen = () => {
             <div className="chat-top-name">{otherName}</div>
             <div className="chat-top-sub">Active now</div>
           </div>
+          <button className="btn-clear-chat" onClick={() => setShowClearConfirm(true)}>
+            🗑 Clear chat
+          </button>
         </div>
 
-        {/* Messages */}
+        {showClearConfirm && (
+          <div className="confirm-overlay">
+            <div className="confirm-box">
+              <div className="confirm-icon">🗑</div>
+              <p className="confirm-title">Clear entire chat?</p>
+              <p className="confirm-sub">This will delete all messages for both users. This cannot be undone.</p>
+              <div className="confirm-actions">
+                <button className="btn-secondary-sm" onClick={() => setShowClearConfirm(false)}>Cancel</button>
+                <button className="btn-danger-sm" onClick={clearChat}>Yes, clear</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="messages-area">
           {Message.length === 0 && (
             <div className="empty-state">
@@ -119,19 +149,34 @@ const MessageScreen = () => {
                     {new Date(v.timestamp).toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" })}
                   </div>
                 )}
-                <div className={`msg-row ${isMine ? "mine" : "theirs"}`} style={{ marginBottom: 2 }}>
+                <div
+                  className={`msg-row ${isMine ? "mine" : "theirs"}`}
+                  style={{ marginBottom: 2 }}
+                  onMouseEnter={() => setHoveredMsg(v.id)}
+                  onMouseLeave={() => setHoveredMsg(null)}
+                >
                   {!isMine && (
-                    <div className="avatar" style={{ width: 28, height: 28, fontSize: 10, flexShrink: 0 }}>
+                    <div className="avatar" style={{ width: 30, height: 30, fontSize: 11, flexShrink: 0 }}>
                       {otherImage ? <img src={otherImage} alt={otherName} /> : getInitials(otherName)}
                     </div>
                   )}
-                  <div>
-                    <div className="bubble">{v.messages}</div>
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexDirection: isMine ? "row-reverse" : "row" }}>
+                      <div className="bubble">{v.messages}</div>
+                      {hoveredMsg === v.id && isMine && (
+                        <button className="msg-delete-btn" onClick={() => deleteMessage(v)} title="Delete message">✕</button>
+                      )}
+                    </div>
                     <div className="bubble-time">
                       {formatTime(v.timestamp)}
                       {isMine && <span style={{ color: "var(--primary)", marginLeft: 4 }}>✓✓</span>}
                     </div>
                   </div>
+                  {isMine && (
+                    <div className="avatar" style={{ width: 30, height: 30, fontSize: 11, flexShrink: 0 }}>
+                      {myImage ? <img src={myImage} alt={myName} /> : getInitials(myName)}
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -139,8 +184,10 @@ const MessageScreen = () => {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
         <div className="chat-input-bar">
+          <div className="avatar" style={{ width: 34, height: 34, fontSize: 11, flexShrink: 0 }}>
+            {myImage ? <img src={myImage} alt={myName} /> : getInitials(myName)}
+          </div>
           <div className="input-wrap">
             <textarea
               placeholder="Type a message…"
@@ -158,7 +205,7 @@ const MessageScreen = () => {
           </div>
           <button className="send-btn" onClick={sendMessage}>
             <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" fill="white"/>
             </svg>
           </button>
         </div>

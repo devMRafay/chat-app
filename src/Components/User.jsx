@@ -6,6 +6,7 @@ import "../App.css"
 function Users() {
   const [user, setUser] = useState([])
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState("")
   const nav = useNavigate()
 
   const getInitials = (name = "") =>
@@ -41,6 +42,7 @@ function Users() {
   useEffect(() => { getUser() }, [])
 
   const sendRequest = async (index) => {
+    const realIndex = user.findIndex(u => u === filteredUsers[index])
     var uid = localStorage.getItem("uid")
     var email = localStorage.getItem("email")
     var name = localStorage.getItem("name")
@@ -48,20 +50,26 @@ function Users() {
     var key = db.ref("users").push().key
     var obj = {
       SenderId: uid, SenderEmail: email, SenderName: name, SenderImage: image,
-      RecieverId: user[index]["userUid"], RecieverEmail: user[index]["email"],
-      RecieverName: user[index]["name"], RecieverImage: user[index]["imageUrl"],
+      RecieverId: user[realIndex]["userUid"], RecieverEmail: user[realIndex]["email"],
+      RecieverName: user[realIndex]["name"], RecieverImage: user[realIndex]["imageUrl"],
       RequestId: key, RequestStatus: "pending"
     }
     await firestore.collection("Request").doc(key).set(obj)
-      .then(() => { user[index]["send_status"] = true; user[index]["RequestId"] = key; setUser([...user]) })
+      .then(() => { user[realIndex]["send_status"] = true; user[realIndex]["RequestId"] = key; setUser([...user]) })
       .catch(alert)
   }
 
   const cancelRequest = async (index) => {
-    await firestore.collection("Request").doc(user[index]["RequestId"]).delete()
-      .then(() => { user[index]["send_status"] = false; user[index]["RequestId"] = ""; setUser([...user]) })
+    const realIndex = user.findIndex(u => u === filteredUsers[index])
+    await firestore.collection("Request").doc(user[realIndex]["RequestId"]).delete()
+      .then(() => { user[realIndex]["send_status"] = false; user[realIndex]["RequestId"] = ""; setUser([...user]) })
       .catch(console.log)
   }
+
+  const filteredUsers = user.filter(v =>
+    v.name?.toLowerCase().includes(search.toLowerCase()) ||
+    v.email?.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <>
@@ -78,18 +86,34 @@ function Users() {
         <div className="list-container">
           <div className="list-header">
             <h2 className="list-title">People you may know</h2>
-            {!loading && <span className="list-count">{user.length} people</span>}
+            {!loading && <span className="list-count">{filteredUsers.length} people</span>}
+          </div>
+
+          <div className="search-bar">
+            <svg viewBox="0 0 24 24" className="search-icon" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none"/>
+            </svg>
+            <input
+              type="text"
+              className="search-input"
+              placeholder="Search by name or email…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button className="search-clear" onClick={() => setSearch("")}>✕</button>
+            )}
           </div>
 
           {loading ? (
             <div className="loading"><div className="spinner"></div> Loading users…</div>
-          ) : user.length === 0 ? (
+          ) : filteredUsers.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon">👥</div>
-              <p>No new users to connect with</p>
+              <p>{search ? `No users found for "${search}"` : "No new users to connect with"}</p>
             </div>
           ) : (
-            user.map((v, i) => (
+            filteredUsers.map((v, i) => (
               <div className="user-card" key={i}>
                 <div className="avatar">
                   {v.imageUrl ? <img src={v.imageUrl} alt={v.name} /> : getInitials(v.name)}
